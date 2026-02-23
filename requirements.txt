@@ -1,0 +1,6 @@
+streamlit
+openai
+python-dotenv
+requests
+beautifulsoup4
+schedule  # monitor.py内で使用（Actionsでは不要だがローカルテスト用）
