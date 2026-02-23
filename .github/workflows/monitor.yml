@@ -1,0 +1,32 @@
+name: Tweet Monitor (12時間ごと)
+
+on:
+  schedule:
+    - cron: '30 23 * * *'   # 8:30 JST (UTC -9h調整 → 23:30 UTC)
+    - cron: '0 13 * * *'    # 22:00 JST (UTC +9h → 13:00 UTC)
+  workflow_dispatch:  # 手動トリガー可
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run monitor
+        env:
+          GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
+          LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
+          TARGET_USERNAME: ${{ secrets.TARGET_USERNAME }}
+        run: python monitor.py
+      - name: Commit history changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add utils/history.json
+          git commit -m "Update history" || echo "No changes"
+          git push
