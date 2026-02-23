@@ -1,13 +1,22 @@
-# 簡易版：アカウント抑制チェック → LINE通知
-import requests
+from datetime import datetime
 from utils.scraper import check_shadowban
-from utils.notifier import send_line_notify  # LINE Notify関数を別途定義
+from utils.notifier import send_line_notify
+import json
+import os
 
-username = "your_username"  # 環境変数化推奨
-result = check_shadowban(username)
+# 複数アカウントJSON読み込み
+ACCOUNTS_FILE = "config/monitored_accounts.json"
+if os.path.exists(ACCOUNTS_FILE):
+    with open(ACCOUNTS_FILE, "r", encoding="utf-8") as f:
+        monitored_accounts = json.load(f)
+else:
+    monitored_accounts = []
 
-msg = f"[{datetime.now()}] {username} Shadowbanチェック\n"
-msg += f"Search Ban: {result.get('search_ban')}\n"
-msg += f"抑制疑い: {result.get('likely_suppressed')}\n"
+messages = []
+for username in monitored_accounts:
+    result = check_shadowban(username)
+    status = "抑制疑いあり" if result.get("likely_suppressed") else "正常"
+    messages.append(f"@{username}: {status} (Search Ban: {result.get('search_ban')})")
 
-send_line_notify(msg)
+full_msg = f"[{datetime.now().strftime('%Y-%m-%d %H:%M JST')}] 複数アカウント監視結果\n" + "\n".join(messages)
+send_line_notify(full_msg)
